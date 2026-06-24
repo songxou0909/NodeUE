@@ -478,8 +478,8 @@ def parse_ue_color(val_str):
                 g = int(float(m_g.group(1)) * 255)
                 b = int(float(m_b.group(1)) * 255)
                 return f"{r},{g},{b}"
-        except:
-            pass
+        except Exception as e:
+            print(f"Failed to parse color: {e}")
     return None
 
 def clean_value(pin_name, raw_val):
@@ -1163,7 +1163,7 @@ class ConfigManager:
             "ai_url": "https://api.deepseek.com/chat/completions",
             "ai_model": "deepseek-chat",
             "ai_key": "",
-            "ai_unlocked": False
+            "ai_unlocked": True
         }
         self.load()
 
@@ -1185,8 +1185,8 @@ class ConfigManager:
                 with open(self.config_path, 'r', encoding='utf-8') as f:
                     saved = json.load(f)
                     self.data.update(saved)
-            except:
-                pass
+            except Exception as e:
+                print(f"Failed to load config: {e}")
 
     def save(self):
         if not self.data["enable_saving"]: return
@@ -1576,7 +1576,8 @@ class TempCleanerDialog(QDialog):
                     date_str = datetime.datetime.fromtimestamp(ctime).strftime('%Y-%m-%d %H:%M:%S')
                     size_mb = self.get_size_mb(full_path)
                     display_text = f"{date_str}  -  {d}  ({size_mb:.2f} MB)"
-                except:
+                except Exception as e:
+                    print(f"Failed to read temp directory stats for {d}: {e}")
                     display_text = f"{T('status_unknown')}  -  {d}"
 
                 item = QListWidgetItem(display_text)
@@ -3431,7 +3432,7 @@ class AIWorker(QThread):
                                     delta = json_chunk['choices'][0].get('delta', {})
                                     if 'content' in delta:
                                         self.chunk_received.emit(delta['content'])
-                            except: 
+                            except json.JSONDecodeError: 
                                 pass
                                 
             self.finished.emit()
@@ -5105,26 +5106,6 @@ End Object"""
     
     def handle_dropped_files(self, files):
         """Centralized logic for handling file drops."""
-        # UNLOCK LOGIC
-        for f in files:
-            if os.path.basename(f) == "key.txt":
-                try:
-                    with open(f, 'r', encoding='utf-8') as kf:
-                        content = kf.read().strip()
-                        # Check against your specific key
-                        if "18029340259614487145" in content:
-                            # 1. Update Config
-                            CONFIG.data["ai_unlocked"] = True
-                            CONFIG.save()
-                            
-                            # 2. Update UI immediately
-                            self.chk_ai.setVisible(True)
-                            
-                            # 3. Notify User
-                            self.show_flash_message("AI Features Unlocked")
-                            return # Stop processing this file
-                except Exception as e:
-                    print(f"Key validation failed: {e}")
         for f in files:
             if f.endswith(".txt"):
                 try:
